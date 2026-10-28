@@ -10,6 +10,7 @@ func _run() -> void:
 	root.add_child(scene)
 	await process_frame
 	var paper = scene.get_node("Paper")
+	paper.animate = false
 	var document = paper.get_node("DocumentViewport/Document")
 	var source_size := Vector2(1086, 1448)
 	var impressions = document._impressions("AAAA", 420.6)

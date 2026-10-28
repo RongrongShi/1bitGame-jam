@@ -81,7 +81,7 @@ texture = ExtResource("2_tefeu")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Paper" type="TextureRect" parent="." unique_id=1114642341]
+[node name="Paper" type="TextureRect" parent="." unique_id=1114642341 node_paths=PackedStringArray("hand")]
 material = SubResource("ShaderMaterial_paper")
 layout_mode = 1
 anchors_preset = -1
@@ -100,6 +100,11 @@ texture = SubResource("ViewportTexture_document")
 expand_mode = 1
 stretch_mode = 5
 script = ExtResource("5_paper")
+hand = NodePath("../BrushHand")
+hand_tip_offset = Vector2(143, 246)
+animate = null
+move_time = null
+sweep_time = null
 
 [node name="DocumentViewport" type="SubViewport" parent="Paper" unique_id=1134065345]
 transparent_bg = true

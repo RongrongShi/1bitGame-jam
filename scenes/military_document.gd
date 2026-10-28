@@ -15,6 +15,8 @@ const SENTENCES = [
 ]
 
 var redacted: Array[int] = []
+# Partial redaction progress per row (row index -> 0.0..1.0), used by the hand animation.
+var line_progress: Dictionary = {}
 
 
 func _draw() -> void:
@@ -28,10 +30,13 @@ func _draw() -> void:
 		for line_index in range(SENTENCES[sentence_index].size()):
 			var line: String = SENTENCES[sentence_index][line_index]
 			var row := 4 + sentence_index * 3 + line_index
-			if sentence_index in redacted:
-				draw_rect(_line_rect(line, row), Color.BLACK)
-			else:
+			var fraction: float = 1.0 if sentence_index in redacted else line_progress.get(row, 0.0)
+			if fraction < 1.0:
 				_write_line(line, row, FONT_SIZE)
+			if fraction > 0.0:
+				var rect := _line_rect(line, row)
+				rect.size.x *= fraction
+				draw_rect(rect, Color.BLACK)
 	_write_line("FILED BY: LT. E. WARD", 17, 32)
 	_write_line("RESTRICTED / COPY 01 OF 03", 18, 32)
 
@@ -66,12 +71,26 @@ func _line_rect(text: String, row: int) -> Rect2:
 		width + 8, body_font.get_height(FONT_SIZE) + 4)
 
 
+# Public rect of one line in document space, used to aim the hand.
+func line_rect(sentence_index: int, line_index: int) -> Rect2:
+	return _line_rect(SENTENCES[sentence_index][line_index], 4 + sentence_index * 3 + line_index)
+
+
+func set_line_progress(sentence_index: int, line_index: int, fraction: float) -> void:
+	line_progress[4 + sentence_index * 3 + line_index] = clampf(fraction, 0.0, 1.0)
+	queue_redraw()
+
+
 func sentence_at(point: Vector2) -> int:
 	for sentence_index in range(SENTENCES.size()):
 		for line_index in range(SENTENCES[sentence_index].size()):
 			if _line_rect(SENTENCES[sentence_index][line_index], 4 + sentence_index * 3 + line_index).has_point(point):
 				return sentence_index
 	return -1
+
+
+func is_redacted(index: int) -> bool:
+	return index in redacted
 
 
 func redact_sentence(index: int) -> void:

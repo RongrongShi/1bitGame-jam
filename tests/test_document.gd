@@ -24,10 +24,10 @@ func _run() -> void:
 		root.size = viewport_size
 		await process_frame
 		var fitted: Vector2 = source_size * minf(paper.size.x / source_size.x, paper.size.y / source_size.y)
-		for index in range(document.SENTENCES.size()):
+		for index in range(document.sentences.size()):
 			for line_index in range(3):
 				var row := 4 + index * 3 + line_index
-				var line: String = document.SENTENCES[index][line_index]
+				var line: String = document.sentences[index][line_index]
 				var source_point: Vector2 = document._line_rect(line, row).get_center()
 				var uv := source_point / source_size
 				var divisor := 1.0 - (1.0 - top_width) * uv.y

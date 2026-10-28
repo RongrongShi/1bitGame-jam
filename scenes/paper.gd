@@ -68,8 +68,9 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _redact_with_hand(index: int) -> void:
+	print("Redacting on: ", name, " sentence ", index)
 	busy = true
-	var line_count: int = document.SENTENCES[index].size()
+	var line_count: int = document.sentences[index].size()
 	for line_index in range(line_count):
 		var rect: Rect2 = document.line_rect(index, line_index)
 		var start := Vector2(rect.position.x, rect.get_center().y)

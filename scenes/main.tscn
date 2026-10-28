@@ -1,0 +1,166 @@
+[gd_scene format=3 uid="uid://ynst5v34qrdt"]
+
+[ext_resource type="Texture2D" uid="uid://b54cqrvfngrlr" path="res://assets/Paper1.png" id="2_paper"]
+[ext_resource type="Texture2D" uid="uid://dj0f1k4v67c5b" path="res://assets/Test.png" id="2_tefeu"]
+[ext_resource type="Shader" uid="uid://w77oxyxar8df" path="res://scenes/perspective.gdshader" id="3_perspective"]
+[ext_resource type="Script" uid="uid://hmmgl6lt81wj" path="res://scenes/military_document.gd" id="4_document"]
+[ext_resource type="Script" uid="uid://b020xyeck3vm5" path="res://scenes/paper.gd" id="5_paper"]
+[ext_resource type="Texture2D" uid="uid://bo8ehvyronb6o" path="res://assets/InkBottle_BrushHand-v2.png" id="6_ink_tools"]
+[ext_resource type="FontFile" uid="uid://t13wnqdqs82p" path="res://assets/fonts/SpecialElite-Regular.ttf" id="7_typewriter"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_desk"]
+shader = ExtResource("3_perspective")
+shader_parameter/top_width = 0.82
+shader_parameter/edge_roughness = 0.02999999932945
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_paper"]
+shader = ExtResource("3_perspective")
+shader_parameter/top_width = 0.8395
+shader_parameter/edge_roughness = 0.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_document"]
+viewport_path = NodePath("Paper/DocumentViewport")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ink_bottle"]
+atlas = ExtResource("6_ink_tools")
+region = Rect2(56, 330, 440, 460)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_brush_hand"]
+atlas = ExtResource("6_ink_tools")
+region = Rect2(810, 90, 964, 797)
+filter_clip = true
+
+[sub_resource type="Gradient" id="Gradient_depth_shade"]
+offsets = PackedFloat32Array(0, 0.35, 0.7, 1)
+colors = PackedColorArray(0, 0, 0, 0.03, 0, 0, 0, 0.12, 0, 0, 0, 0.62, 0, 0, 0, 0.98)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_depth_shade"]
+gradient = SubResource("Gradient_depth_shade")
+width = 1024
+height = 1024
+fill = 1
+fill_from = Vector2(0.5, 0.85)
+fill_to = Vector2(0.9130435, 0.14782609)
+
+[node name="Main" type="Control" unique_id=1803119586]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="." unique_id=641257913]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Desk" type="TextureRect" parent="." unique_id=864356146]
+material = SubResource("ShaderMaterial_desk")
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.08
+anchor_top = 0.08
+anchor_right = 0.92
+anchor_bottom = 0.92
+offset_left = -106.159996
+offset_top = -5.84
+offset_right = -106.15997
+offset_bottom = -5.840027
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.22, 1.11)
+mouse_filter = 2
+texture = ExtResource("2_tefeu")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Paper" type="TextureRect" parent="." unique_id=1114642341]
+material = SubResource("ShaderMaterial_paper")
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.35
+anchor_top = 0.13
+anchor_right = 0.65
+anchor_bottom = 0.87
+offset_left = 3.0517578e-05
+offset_top = 78.445
+offset_right = 0.0004272461
+offset_bottom = 78.44513
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+texture = SubResource("ViewportTexture_document")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("5_paper")
+
+[node name="DocumentViewport" type="SubViewport" parent="Paper" unique_id=1134065345]
+transparent_bg = true
+size = Vector2i(1086, 1448)
+render_target_update_mode = 4
+
+[node name="PaperImage" type="TextureRect" parent="Paper/DocumentViewport" unique_id=995921443]
+offset_right = 1086.0
+offset_bottom = 1448.0
+mouse_filter = 2
+texture = ExtResource("2_paper")
+
+[node name="Document" type="Control" parent="Paper/DocumentViewport" unique_id=1466331478]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1086.0
+offset_bottom = 1448.0
+mouse_filter = 2
+script = ExtResource("4_document")
+body_font = ExtResource("7_typewriter")
+
+[node name="InkBottle" type="TextureRect" parent="." unique_id=1184117506]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.26200002
+anchor_top = 0.541
+anchor_right = 0.34
+anchor_bottom = 0.72
+offset_left = -156.82404
+offset_top = -229.568
+offset_right = -4.1999817
+offset_bottom = -178.56003
+mouse_filter = 2
+texture = SubResource("AtlasTexture_ink_bottle")
+expand_mode = 1
+stretch_mode = 5
+flip_h = true
+
+[node name="BrushHand" type="TextureRect" parent="." unique_id=80053278]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.55
+anchor_top = 0.09
+anchor_right = 0.99
+anchor_bottom = 0.75
+offset_left = -136.60004
+offset_top = 85.67999
+offset_right = -36.47998
+offset_bottom = -52.0
+mouse_filter = 2
+texture = SubResource("AtlasTexture_brush_hand")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DepthShade" type="TextureRect" parent="." unique_id=1836199910]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_depth_shade")
+expand_mode = 1

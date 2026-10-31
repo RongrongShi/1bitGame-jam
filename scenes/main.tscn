@@ -8,6 +8,8 @@
 [ext_resource type="Script" uid="uid://b020xyeck3vm5" path="res://scenes/paper.gd" id="5_paper"]
 [ext_resource type="Texture2D" uid="uid://bo8ehvyronb6o" path="res://assets/InkBottle_BrushHand-v2.png" id="6_ink_tools"]
 [ext_resource type="FontFile" uid="uid://t13wnqdqs82p" path="res://assets/fonts/SpecialElite-Regular.ttf" id="7_typewriter"]
+[ext_resource type="Script" uid="uid://b0uepq7tfkca3" path="res://scenes/title_card.gd" id="9_85g3d"]
+[ext_resource type="Script" uid="uid://bu4stb2hxniv8" path="res://scenes/dialogue_box.gd" id="10_choun"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_desk"]
 shader = ExtResource("3_perspective")
@@ -86,7 +88,7 @@ texture = ExtResource("2_tefeu")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="PaperNext" type="TextureRect" parent="." unique_id=1665404911 node_paths=PackedStringArray("hand")]
+[node name="PaperNext" type="TextureRect" parent="." unique_id=1665404911]
 material = SubResource("ShaderMaterial_paper")
 layout_mode = 1
 anchors_preset = -1
@@ -105,8 +107,6 @@ texture = SubResource("ViewportTexture_tipki")
 expand_mode = 1
 stretch_mode = 5
 script = ExtResource("5_paper")
-hand = NodePath("../BrushHand")
-hand_tip_offset = Vector2(143, 246)
 
 [node name="DocumentViewport" type="SubViewport" parent="PaperNext" unique_id=1293254220]
 transparent_bg = true
@@ -128,7 +128,7 @@ mouse_filter = 2
 script = ExtResource("4_document")
 body_font = ExtResource("7_typewriter")
 
-[node name="Paper" type="TextureRect" parent="." unique_id=1114642341 node_paths=PackedStringArray("hand")]
+[node name="Paper" type="TextureRect" parent="." unique_id=1114642341]
 material = SubResource("ShaderMaterial_paper")
 layout_mode = 1
 anchors_preset = -1
@@ -147,11 +147,6 @@ texture = SubResource("ViewportTexture_document")
 expand_mode = 1
 stretch_mode = 5
 script = ExtResource("5_paper")
-hand = NodePath("../BrushHand")
-hand_tip_offset = Vector2(143, 246)
-animate = null
-move_time = null
-sweep_time = null
 
 [node name="DocumentViewport" type="SubViewport" parent="Paper" unique_id=1134065345]
 transparent_bg = true
@@ -191,6 +186,7 @@ stretch_mode = 5
 flip_h = true
 
 [node name="BrushHand" type="TextureRect" parent="." unique_id=80053278]
+visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.55
@@ -216,3 +212,16 @@ grow_vertical = 2
 mouse_filter = 2
 texture = SubResource("GradientTexture2D_depth_shade")
 expand_mode = 1
+
+[node name="DiscardSpot" type="Marker2D" parent="." unique_id=208393209]
+position = Vector2(179, 321)
+
+[node name="TitleCard" type="CanvasLayer" parent="." unique_id=817268651]
+script = ExtResource("9_85g3d")
+font = ExtResource("7_typewriter")
+fade_time = 1.2
+hold_time = 3.0
+
+[node name="DialogueBox" type="CanvasLayer" parent="." unique_id=1946665873]
+script = ExtResource("10_choun")
+font = ExtResource("7_typewriter")

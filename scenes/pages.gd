@@ -1,35 +1,44 @@
+# Page data only. To add a page, append one dictionary to PAGES.
+# Rules per page: 4 sentences x 3 lines, each line at most ~31 characters.
+# "targets" lists the sentence indices (0-3) the player must redact.
+# "ids" names each sentence so the newspaper can report on what was redacted.
+# "read_animation" plays the zoomed reading animation when the page is revealed.
 const PAGES = [
 	{
-		"header": ["INTELLIGENCE SECTION / FILE 07-41", "17 OCT 1941 / NORTHERN SECTOR", "SUBJECT: EVACUATION OF GREYFORD"],
+		"header": ["INTELLIGENCE SECTION / FILE 01-01", "02 NOV 1941 / WESTERN SECTOR", "SUBJECT: ENGAGEMENT AT MARLOW"],
 		"sentences": [
-			["Forward observers report no", "armed resistance in the village", "of Greyford."],
-			["Thirty-two civilians remain", "inside the schoolhouse, awaiting", "transport before nightfall."],
-			["The northern bridge is unsafe;", "medical vehicles must use the", "river road to reach the village."],
-			["Command has ordered the public", "bulletin to omit all references", "to civilian casualties."],
+			["Our forces took the Marlow", "crossing at 0600 hours after", "a brief engagement."],
+			["Own casualties were 112 dead", "and 340 wounded, nearly one", "third of the assault battalion."],
+			["Enemy resistance collapsed by", "midday; 200 prisoners were", "taken and moved to the rear."],
+			["Supplies at the crossing are", "sufficient for four days of", "continued operations."],
 		],
-		"targets": [1, 3],
-		"footer": ["FILED BY: LT. E. WARD", "RESTRICTED / COPY 01 OF 03"],
+		"ids": ["marlow_crossing", "marlow_casualties", "marlow_prisoners", "marlow_supplies"],
+		"targets": [1],
+		"read_animation": true,
+		"footer": ["FILED BY: MAJ. K. LANGE", "RESTRICTED / COPY 01 OF 03"],
 	},
 	{
-		"header": ["INTELLIGENCE SECTION / FILE 07-52", "19 OCT 1941 / EASTERN SECTOR", "SUBJECT: SUPPLY STATUS AT HARROW"],
+		"header": ["INTELLIGENCE SECTION / FILE 01-02", "03 NOV 1941 / WESTERN SECTOR", "SUBJECT: DAMAGE REPORT, ALDEN"],
 		"sentences": [
-			["Rations at Harrow will last", "another nine days at current", "levels of consumption."],
-			["The infantry units were sent", "without winter coats because", "the order was lost in transit."],
-			["Field hospital reports forty", "cases of frostbite among the", "forward companies."],
-			["Weather conditions remain", "favorable for the advance", "scheduled at dawn on Friday."],
+			["Artillery fire on Alden was", "concentrated on the rail depot", "and the two nearby bridges."],
+			["The district hospital took a", "direct hit during the barrage", "and was destroyed."],
+			["Roughly sixty patients and", "staff were inside at the time", "of the strike."],
+			["The rail depot is no longer", "usable. Repairs will take", "about two weeks."],
 		],
+		"ids": ["alden_targets", "alden_hospital", "alden_victims", "alden_depot"],
 		"targets": [1, 2],
-		"footer": ["FILED BY: CPT. R. HALE", "RESTRICTED / COPY 01 OF 03"],
+		"footer": ["FILED BY: MAJ. K. LANGE", "RESTRICTED / COPY 01 OF 03"],
 	},
 	{
-		"header": ["INTELLIGENCE SECTION / FILE 07-60", "21 OCT 1941 / NORTHERN SECTOR", "SUBJECT: CLOSURE OF GREYFORD"],
+		"header": ["INTELLIGENCE SECTION / FILE 01-03", "04 NOV 1941 / EASTERN SECTOR", "SUBJECT: STATUS OF THE EAST LINE"],
 		"sentences": [
-			["Greyford has been declared", "secure by the garrison", "commander."],
-			["The schoolhouse was struck by", "artillery before the convoy", "arrived at the village."],
-			["No survivors were recovered", "from the eastern cellar.", "Recovery is now suspended."],
-			["The press office will release", "a statement describing the", "operation as a full success."],
+			["The eastern line holds with", "three understrength divisions", "along the river Kell."],
+			["Fuel reserves cover only six", "days. Command has chosen to", "withhold this from the units."],
+			["Two supply convoys were lost", "to partisan raids; drivers and", "escorts are presumed dead."],
+			["Morale remains satisfactory", "and no further reinforcement", "is requested at this time."],
 		],
+		"ids": ["kell_line", "kell_fuel", "kell_convoys", "kell_morale"],
 		"targets": [1, 2],
-		"footer": ["FILED BY: LT. E. WARD", "RESTRICTED / COPY 01 OF 03"],
+		"footer": ["FILED BY: MAJ. K. LANGE", "RESTRICTED / COPY 01 OF 03"],
 	},
 ]

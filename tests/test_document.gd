@@ -7,6 +7,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var scene = load("res://scenes/main.tscn").instantiate()
+	scene.play_intro = false
 	root.add_child(scene)
 	await process_frame
 	var paper = scene.get_node("Paper")

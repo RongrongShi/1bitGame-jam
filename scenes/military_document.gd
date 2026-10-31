@@ -15,6 +15,22 @@ const SENTENCES = [
 ]
 
 var redacted: Array[int] = []
+var words: Array[Dictionary] = []
+var hovered_word := -1
+
+
+func _ready() -> void:
+	for sentence_index in range(SENTENCES.size()):
+		for line_index in range(SENTENCES[sentence_index].size()):
+			var line: String = SENTENCES[sentence_index][line_index]
+			var row := 4 + sentence_index * 3 + line_index
+			var column := 0
+			for word in line.split(" ", false):
+				column = line.find(word, column)
+				var bounds := _line_rect(word, row)
+				bounds.position.x += column * FONT_SIZE * 0.6
+				words.append({"text": word, "rect": bounds, "row": row})
+				column += word.length()
 
 
 func _draw() -> void:
@@ -28,12 +44,15 @@ func _draw() -> void:
 		for line_index in range(SENTENCES[sentence_index].size()):
 			var line: String = SENTENCES[sentence_index][line_index]
 			var row := 4 + sentence_index * 3 + line_index
-			if sentence_index in redacted:
-				draw_rect(_line_rect(line, row), Color.BLACK)
-			else:
-				_write_line(line, row, FONT_SIZE)
+			_write_line(line, row, FONT_SIZE)
 	_write_line("FILED BY: LT. E. WARD", 17, 32)
 	_write_line("RESTRICTED / COPY 01 OF 03", 18, 32)
+	for index in redacted:
+		draw_rect(words[index].rect, Color.BLACK)
+	if hovered_word >= 0:
+		var bounds: Rect2 = words[hovered_word].rect
+		draw_line(Vector2(bounds.position.x, bounds.get_center().y),
+			Vector2(bounds.end.x, bounds.get_center().y), Color.BLACK, 4.0)
 
 
 func _write_line(text: String, row: int, font_size: int) -> void:
@@ -66,16 +85,36 @@ func _line_rect(text: String, row: int) -> Rect2:
 		width + 8, body_font.get_height(FONT_SIZE) + 4)
 
 
-func sentence_at(point: Vector2) -> int:
-	for sentence_index in range(SENTENCES.size()):
-		for line_index in range(SENTENCES[sentence_index].size()):
-			if _line_rect(SENTENCES[sentence_index][line_index], 4 + sentence_index * 3 + line_index).has_point(point):
-				return sentence_index
+func word_at(point: Vector2) -> int:
+	for index in range(words.size()):
+		if index not in redacted and words[index].rect.has_point(point):
+			return index
 	return -1
 
 
-func redact_sentence(index: int) -> void:
-	if index < 0 or index >= SENTENCES.size() or index in redacted:
+func set_hovered_word(index: int) -> void:
+	if index in redacted:
+		index = -1
+	if hovered_word == index:
 		return
-	redacted.append(index)
+	hovered_word = index
 	queue_redraw()
+
+
+func redact_stroke(from: Vector2, to: Vector2) -> void:
+	for index in range(words.size()):
+		if index not in redacted and _stroke_hits_rect(from, to, words[index].rect):
+			redacted.append(index)
+	set_hovered_word(word_at(to))
+	queue_redraw()
+
+
+func _stroke_hits_rect(from: Vector2, to: Vector2, bounds: Rect2) -> bool:
+	if bounds.has_point(from) or bounds.has_point(to):
+		return true
+	var corners := [bounds.position, Vector2(bounds.end.x, bounds.position.y),
+		bounds.end, Vector2(bounds.position.x, bounds.end.y)]
+	for side in range(4):
+		if Geometry2D.segment_intersects_segment(from, to, corners[side], corners[(side + 1) % 4]) != null:
+			return true
+	return false

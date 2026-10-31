@@ -7,22 +7,24 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var scene = load("res://scenes/main.tscn").instantiate()
+	scene.play_intro = false
 	root.add_child(scene)
 	await process_frame
 	var paper = scene.get_node("Paper")
+	paper.animate = false
 	var document = paper.get_node("DocumentViewport/Document")
 	var impressions = document._impressions("AAAA", 420.6)
 	assert(impressions == document._impressions("AAAA", 420.6), "Ink must remain stable across redraws")
 	assert(impressions[0] != impressions[1], "Repeated letters must have distinct impressions")
 	var no_index := -1
 	for index in range(document.words.size()):
-		if document.words[index].text == "no":
+		if document.words[index].row == 4:
 			no_index = index
 	assert(no_index >= 0)
 	for viewport_size in [Vector2i(1152, 648), Vector2i(1920, 1080), Vector2i(900, 900)]:
 		root.size = viewport_size
 		await process_frame
-		document.redacted.clear()
+		document.redacted_words.clear()
 		for index in range(document.words.size()):
 			var bounds: Rect2 = document.words[index].rect
 			var point := _project(paper, bounds.get_center())
@@ -31,33 +33,33 @@ func _run() -> void:
 			assert(bounds.end.x < 960, "Text exceeds paper margin")
 		var no_point := _project(paper, document.words[no_index].rect.get_center())
 		_motion(paper, no_point)
-		assert(document.hovered_word == no_index and document.redacted.is_empty(), "Hover only previews")
+		assert(document.hovered_word == no_index and document.redacted_words.is_empty(), "Hover only previews")
 		_button(paper, no_point, true)
 		_button(paper, no_point, false)
-		assert(document.redacted.is_empty(), "A click without dragging must not redact")
+		assert(document.redacted_words.is_empty(), "A click without dragging must not redact")
 		_button(paper, no_point, true)
 		_motion(paper, no_point + Vector2(1, 0), MOUSE_BUTTON_MASK_LEFT)
-		assert(document.redacted == [no_index], "Only the word 'no' must be removed")
+		assert(document.redacted_words == [no_index], "Only the selected word must be removed")
 		_motion(paper, no_point, MOUSE_BUTTON_MASK_LEFT)
-		assert(document.redacted.size() == 1, "Repainting must not duplicate words")
+		assert(document.redacted_words.size() == 1, "Repainting must not duplicate words")
 		assert(document.hovered_word == -1, "Redacted words must not show a hover line")
 		var outside_release := InputEventMouseButton.new()
 		outside_release.button_index = MOUSE_BUTTON_LEFT
 		paper._input(outside_release)
 		_motion(paper, _project(paper, document.words[0].rect.get_center()))
-		assert(not paper.dragging and document.redacted.size() == 1, "Outside release ends painting")
-		document.redacted.clear()
+		assert(not paper.dragging and document.redacted_words.size() == 1, "Outside release ends painting")
+		document.redacted_words.clear()
 		var first: Rect2 = document.words[0].rect
 		var last: Rect2 = document.words[no_index].rect
 		_button(paper, _project(paper, Vector2(first.position.x - 12, first.get_center().y)), true)
 		_motion(paper, _project(paper, Vector2(last.end.x + 12, last.get_center().y)), MOUSE_BUTTON_MASK_LEFT)
-		assert(document.redacted.size() == no_index + 1, "Fast drag must hit intermediate words")
+		assert(document.redacted_words.size() == no_index + 1, "Fast drag must hit intermediate words")
 		_button(paper, no_point, false)
-		document.redacted.clear()
+		document.redacted_words.clear()
 		_button(paper, no_point, true)
 		paper._clear_hover()
 		_motion(paper, _project(paper, document.words[0].rect.get_center()), MOUSE_BUTTON_MASK_LEFT)
-		assert(document.redacted.is_empty(), "Re-entry must not paint a chord across the page")
+		assert(document.redacted_words.is_empty(), "Re-entry must not paint a chord across the page")
 		_button(paper, no_point, false)
 		_motion(paper, no_point)
 		paper._clear_hover()
@@ -68,7 +70,7 @@ func _run() -> void:
 		right_click.position = no_point
 		paper._gui_input(right_click)
 		_motion(paper, no_point + Vector2(2, 0), MOUSE_BUTTON_MASK_RIGHT)
-		assert(document.redacted.is_empty(), "Right button must not paint")
+		assert(document.redacted_words.is_empty(), "Right button must not paint")
 		assert(document.word_at(Vector2(200, 140)) == -1, "Heading is not redactable")
 		assert(document.word_at(paper.document_position(Vector2.ZERO)) == -1)
 	# Dispatch through Godot itself to check that the hand and shade do not swallow input.
@@ -83,17 +85,17 @@ func _run() -> void:
 	press.button_index = MOUSE_BUTTON_LEFT
 	press.pressed = true
 	root.push_input(press, true)
-	assert(document.redacted.is_empty())
+	assert(document.redacted_words.is_empty())
 	hover.position += Vector2(1, 0)
 	hover.button_mask = MOUSE_BUTTON_MASK_LEFT
 	root.push_input(hover, true)
-	assert(document.redacted == [0], "Viewport must deliver the brush drag")
+	assert(document.redacted_words == [0], "Viewport must deliver the brush drag")
 	var release := InputEventMouseButton.new()
 	release.position = Vector2.ZERO
 	release.button_index = MOUSE_BUTTON_LEFT
 	root.push_input(release, true)
 	assert(not paper.dragging)
-	document.redacted.clear()
+	document.redacted_words.clear()
 	paper._clear_hover()
 	print("PASS: word hover, drag-only painting, fast strokes, outside release, re-entry, viewport input and perspective at three sizes")
 	if DisplayServer.get_name() != "headless":

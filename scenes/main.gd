@@ -17,6 +17,8 @@ const CALLBACK_LINES := [
 const INTRO_LINES := [
 	"Sit down. Scheiße. I'm Major Lange. You answer to me here.",
 	"Our army is making a strategic withdrawal. Those damned Allies will pay for every step.",
+	"A desk, regular rations, a roof over your head.",
+	"Do your work properly, and you'll be looked after.",
 	"This office clears press extracts, public notices and outgoing letters.",
 	"Military originals stay sealed. Work on the copies marked for release.",
 	"Private letters go to their addressees. The press receives only what we clear.",

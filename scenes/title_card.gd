@@ -39,6 +39,9 @@ func _ready() -> void:
 
 # Fade the text in over black, hold, fade it out. The screen stays black afterwards.
 func show_card(text: String) -> void:
+	_label.offset_top = 0.0
+	_label.offset_bottom = 0.0
+	_label.add_theme_font_size_override("font_size", font_size)
 	_label.text = text
 	_label.modulate.a = 0.0
 	_shade.modulate.a = 1.0
@@ -48,6 +51,69 @@ func show_card(text: String) -> void:
 	tween.tween_interval(hold_time)
 	tween.tween_property(_label, "modulate:a", 0.0, fade_time)
 	await tween.finished
+
+
+func show_headphones() -> void:
+	cut_to_black()
+	_label.text = "Headphones recommended."
+	_label.offset_top = 64.0
+	_label.offset_bottom = 64.0
+	_label.add_theme_font_size_override("font_size", 28)
+	_label.modulate.a = 0.0
+	var icon := TextureRect.new()
+	icon.name = "HeadphonesIcon"
+	icon.texture = preload("res://assets/Headphones_Icon.png")
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shade.add_child(icon)
+	icon.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	icon.offset_left = -56.0
+	icon.offset_right = 56.0
+	icon.offset_top = -128.0
+	icon.offset_bottom = -16.0
+	icon.modulate.a = 0.0
+	var tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_label, "modulate:a", 1.0, fade_time)
+	tween.parallel().tween_property(icon, "modulate:a", 1.0, fade_time)
+	tween.tween_interval(hold_time)
+	tween.tween_property(_label, "modulate:a", 0.0, fade_time)
+	tween.parallel().tween_property(icon, "modulate:a", 0.0, fade_time)
+	await tween.finished
+	icon.queue_free()
+
+
+func show_epilogue() -> void:
+	_label.text = "You did your job."
+	_label.add_theme_font_size_override("font_size", 36)
+	_label.offset_top = -36.0
+	_label.offset_bottom = -36.0
+	_label.modulate.a = 0.0
+	var question := Label.new()
+	question.name = "EndingQuestion"
+	question.text = "At what price?"
+	question.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	question.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	question.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	question.add_theme_color_override("font_color", Color.WHITE)
+	question.add_theme_font_size_override("font_size", 36)
+	if font != null:
+		question.add_theme_font_override("font", font)
+	_label.get_parent().add_child(question)
+	question.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	question.offset_top = 36.0
+	question.offset_bottom = 36.0
+	question.modulate.a = 0.0
+	var tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_label, "modulate:a", 1.0, fade_time)
+	tween.tween_interval(hold_time)
+	tween.tween_property(question, "modulate:a", 1.0, fade_time)
+	tween.tween_interval(3.0)
+	tween.tween_property(_label, "modulate:a", 0.0, fade_time)
+	tween.parallel().tween_property(question, "modulate:a", 0.0, fade_time)
+	await tween.finished
+	_label.text = ""
+	question.queue_free()
 
 
 # Fade the black screen away to reveal the desk.

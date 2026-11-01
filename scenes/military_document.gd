@@ -59,7 +59,7 @@ func _draw() -> void:
 		_write_line(page.header[index], index, HEADER_SIZES[index])
 	for sentence_index in range(sentences.size()):
 		for line_index in range(sentences[sentence_index].size()):
-			_write_line(sentences[sentence_index][line_index], int(page.get("body_row", 4)) + sentence_index * 3 + line_index, text_size())
+			_write_line(sentences[sentence_index][line_index], _sentence_row(sentence_index) + line_index, text_size())
 	for index in range(page.footer.size()):
 		_write_line(page.footer[index], int(page.get("footer_row", 17)) + index, 32)
 	for index in range(page.targets.size()):
@@ -186,8 +186,14 @@ func _line_rect(text: String, row: int) -> Rect2:
 		width + 8, font.get_height(size) + 4)
 
 
+func _sentence_row(sentence_index: int) -> int:
+	# Editor tool instances may retain page data from before explicit paragraph rows were added.
+	var rows: Array = page.get("sentence_rows", [])
+	return int(page.get("body_row", 4)) + (int(rows[sentence_index]) if sentence_index < rows.size() else sentence_index * 3)
+
+
 func line_rect(sentence_index: int, line_index: int) -> Rect2:
-	return _line_rect(sentences[sentence_index][line_index], int(page.get("body_row", 4)) + sentence_index * 3 + line_index)
+	return _line_rect(sentences[sentence_index][line_index], _sentence_row(sentence_index) + line_index)
 
 
 func target_rects(index: int) -> Array[Rect2]:

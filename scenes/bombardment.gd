@@ -1,5 +1,7 @@
 extends Node
 
+signal shake_changed(screen_offset: Vector2)
+
 @export var camera: Camera2D
 
 const SOUNDS = [
@@ -9,6 +11,8 @@ const SOUNDS = [
 	preload("res://assets/audio/big explosion.mp3"),
 ]
 const PROFILES = {
+	4: {"interval": Vector2(10, 18), "strengths": [1, 1, 2], "volume": -16.0, "cutoff": 3500.0,
+		"shake": [0.0, 2.0, 4.0, 8.0], "duration": 0.5, "big_duration": 0.9, "big_cooldown": 30.0},
 	5: {"interval": Vector2(6, 14), "strengths": [1, 1, 2, 2, 2, 3], "volume": -11.0, "cutoff": 6500.0,
 		"shake": [0.0, 3.0, 7.0, 16.0], "duration": 0.5, "big_duration": 1.1, "big_cooldown": 20.0},
 	6: {"interval": Vector2(3, 7), "strengths": [1, 2, 2, 3], "volume": -8.0, "cutoff": 9000.0,
@@ -71,6 +75,7 @@ func stop() -> void:
 	if is_instance_valid(camera):
 		camera.offset = Vector2.ZERO
 		camera.force_update_scroll()
+	shake_changed.emit(Vector2.ZERO)
 
 
 func _process(delta: float) -> void:
@@ -91,6 +96,7 @@ func _process(delta: float) -> void:
 		# Offset is in world units; divide by zoom to keep the reading shake bounded in pixels.
 		camera.offset = motion * _shake_pixels * decay * decay / camera.zoom
 		camera.force_update_scroll()
+		shake_changed.emit(camera.offset * camera.zoom)
 
 
 func _play_explosion(strength: int) -> void:

@@ -23,9 +23,13 @@ static func play(tree: SceneTree, scene: Node, page_index: int) -> void:
 		assert(officer.texture == (preload("res://assets/Officer_TakeNewspaper.png") if page_index == 3 else dialogue.backdrop))
 		var brightness := 0.81 if page_index == 3 else 0.9
 		assert(officer.self_modulate == Color(brightness, brightness, brightness))
-		if page_index == 4:
-			var bombardment = scene.get_node("Bombardment")
-			assert(bombardment.day == 5 and bombardment.is_processing())
+		var bombardment = scene.get_node("Bombardment")
+		assert(bombardment.day == page_index + 1 and bombardment.is_processing())
+		bombardment._play_explosion(2)
+		await tree.process_frame
+		await tree.process_frame
+		assert(officer.position.is_equal_approx(Vector2(-48, -48) + scene.camera.offset * scene.camera.zoom))
+		assert(officer.position != Vector2(-48, -48), "Both interlude officer scenes must shake")
 		if dialogue._typing:
 			dialogue._press()
 		dialogue._press()

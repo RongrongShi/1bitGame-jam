@@ -7,7 +7,9 @@ signal letter_finished(page_index: int)
 
 const ZOOM_TIME := 1.0
 const BLACK_PAUSE := 1.6
+const DAY_BLACK_PAUSE := 3.0
 const WIDE_PAUSE := 1.0
+const ENDING_SILENCE := 4.0
 
 const CALLBACK_LINES := [
 	"The secrets will be buried.",
@@ -73,11 +75,11 @@ func _ready() -> void:
 	$PaperHandling.stream = page_sounds
 	camera.position = get_viewport().get_visible_rect().size * 0.5
 	top.target_redacted.connect(_on_target_redacted)
+	$Bombardment.shake_changed.connect(_on_officer_shake)
 	folded_newspaper.gui_input.connect(_on_newspaper_input)
 	get_viewport().size_changed.connect(func() -> void: call_deferred("_fit_work_view"))
 	title_card.cut_to_black()
 	if play_intro:
-		get_tree().create_timer(2.0).timeout.connect($BackgroundMusic.play)
 		_play_intro()
 	else:
 		$BackgroundMusic.play()
@@ -85,6 +87,8 @@ func _ready() -> void:
 
 
 func _play_intro() -> void:
+	await title_card.show_headphones()
+	get_tree().create_timer(2.0).timeout.connect($BackgroundMusic.play)
 	await title_card.show_card("BERLIN, 1944")
 	await dialogue_box.show_lines(INTRO_LINES)
 	await get_tree().create_timer(BLACK_PAUSE).timeout
@@ -111,6 +115,7 @@ func _start_letter() -> void:
 			$PaperHandling.play()
 		else:
 			await dialogue_box.show_lines(INTERLUDE_LINES[page_index])
+		dialogue_box._root.get_node("OfficerBackground").set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		await get_tree().create_timer(BLACK_PAUSE).timeout
 	await title_card.reveal()
 	await get_tree().create_timer(WIDE_PAUSE).timeout
@@ -169,7 +174,7 @@ func _finish_letter() -> void:
 	if page_index + 1 < top.document.PAGES.size():
 		$Bombardment.stop()
 	letter_finished.emit(page_index)
-	await get_tree().create_timer(BLACK_PAUSE).timeout
+	await get_tree().create_timer(DAY_BLACK_PAUSE).timeout
 	if page_index + 1 < top.document.PAGES.size():
 		page_index += 1
 		await _start_letter()
@@ -177,14 +182,30 @@ func _finish_letter() -> void:
 		await _play_ending()
 
 
+func _on_officer_shake(offset: Vector2) -> void:
+	if not dialogue_box._root.visible:
+		return
+	var officer: TextureRect = dialogue_box._root.get_node("OfficerBackground")
+	# Overscan keeps the doorway covering the screen throughout the strongest shake.
+	officer.offset_left = -48.0 + offset.x
+	officer.offset_top = -48.0 + offset.y
+	officer.offset_right = 48.0 + offset.x
+	officer.offset_bottom = 48.0 + offset.y
+
+
 func _play_ending() -> void:
 	dialogue_box.line_started.connect(_on_ending_line)
 	await dialogue_box.show_lines(ENDING_LINES, false, true)
 	dialogue_box.line_started.disconnect(_on_ending_line)
+	dialogue_box._root.get_node("OfficerBackground").set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	title_card.cut_to_black()
 	$BackgroundMusic.stop()
 	$Bombardment.stop()
 	$Gunshot.play()
+	await get_tree().create_timer(ENDING_SILENCE).timeout
+	await title_card.show_epilogue()
+	await get_tree().create_timer(BLACK_PAUSE).timeout
+	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 
 func _on_ending_line(index: int) -> void:

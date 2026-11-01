@@ -15,7 +15,10 @@ func _run() -> void:
 	assert(paper._brush_audio.stream.resource_path.ends_with("02-soft-ink-brush-gentle/long.wav"))
 	paper.line_pause = 0.0
 	var durations: Array[float] = []
-	for index in [0, 2]:
+	var widths: Array[float] = []
+	for index in range(document.PAGES[0].targets.size()):
+		widths.append(document.target_rects(index)[0].size.x)
+	for index in [widths.find(widths.min()), widths.find(widths.max())]:
 		document.set_page(document.PAGES[0])
 		var bounds: Rect2 = document.target_rects(index)[0]
 		var outline: PackedVector2Array = document._ink_outline(bounds, 1.0, index * 17)

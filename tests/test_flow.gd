@@ -10,6 +10,7 @@ func _run() -> void:
 	scene.play_intro = false
 	root.add_child(scene)
 	assert(scene.title_card.fade_time == 1.8 and scene.dialogue_box.fade_time == 1.8)
+	assert(scene.DAY_BLACK_PAUSE == 3.0)
 	await _check_entry_hold(scene)
 	await scene.work_started
 	assert(scene.INTRO_LINES.slice(scene.INTRO_LINES.size() - scene.CALLBACK_LINES.size()) == scene.CALLBACK_LINES)
@@ -83,13 +84,15 @@ func _run() -> void:
 		assert(scene.camera.offset == Vector2.ZERO)
 		assert(scene.title_card._shade.modulate.a == 1.0)
 		assert(scene.title_card._label.text.is_empty())
+		await create_timer(2.5).timeout
+		assert(scene.page_index == page_index and not scene.dialogue_box._root.visible, "Hold black between days for three seconds")
 		if page_index < 6:
 			if page_index in [2, 3]:
 				await preload("res://tests/interlude_driver.gd").play(self, scene, page_index + 1)
 			await _check_entry_hold(scene)
 			await scene.work_started
 		else:
-			await create_timer(scene.BLACK_PAUSE + 0.2).timeout
+			await create_timer(scene.DAY_BLACK_PAUSE - 2.5 + 0.2).timeout
 			assert(scene.page_index == 6 and scene.busy and scene.title_card._shade.visible)
 			assert(scene.dialogue_box._root.visible and not scene.get_node("Gunshot").playing)
 	scene.queue_free()

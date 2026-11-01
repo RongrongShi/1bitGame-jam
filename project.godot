@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="1bit_GameJam"
+config/name="Cleared for Release"
 run/main_scene="uid://ynst5v34qrdt"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"

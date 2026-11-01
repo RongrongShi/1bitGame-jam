@@ -18,14 +18,14 @@ func _run() -> void:
 	for index in range(4):
 		assert(bombardment.SOUNDS[index].get_length() > 0.0)
 		print("Explosion ", index, " duration: ", bombardment.SOUNDS[index].get_length())
-	for day in range(1, 5):
+	for day in range(1, 4):
 		bombardment.set_day(day)
 		assert(not bombardment.is_processing())
 	var previous_volume := -100.0
 	var previous_cutoff := 0.0
 	var previous_interval := 100.0
 	var previous_shake := 0.0
-	for day in range(5, 8):
+	for day in range(4, 8):
 		bombardment.set_day(day)
 		bombardment.set_process(false)
 		assert(bombardment.PROFILES[day].volume > previous_volume)

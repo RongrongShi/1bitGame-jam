@@ -1,13 +1,13 @@
 extends SceneTree
 
 const RELEASED = [
-	["At [X] on [X], the bridge", "remained open to road traffic.", "Routine inspections continue.", "At the western bridgehead,", "[X]", "[X]", "Losses: [X] dead, [X] wounded.", "Remaining strength: [X] men.", "Roll calls are still under way.", "Supply vehicles use the east road.", "Bridge traffic is restricted.", "Next inspection: 03 NOV."],
-	["Transport order: 03 NOV, [X].", "Available trucks: [X].", "Fuel allocation: [X] barrels.", "Load manifests include records,", "medical stores and liaison staff.", "Escort details are enclosed.", "Passenger list: [X].", "[X]", "[X]", "Vehicles will use Route [X].", "Departure remains on schedule.", "Receipt of this report required."],
-	["Your scarf still smells of home.", "I keep it beside me at night.", "How is our stubborn kitchen lamp?", "I shall be home later than I said.", "Do not come to West Station", "with your supper basket again.", "[X]", "[X]", "[X]", "If anyone asks, say you heard", "nothing. I cannot write more.", "I hope the soup was good.", "When I return, I will mend", "that draughty kitchen window.", "Until then, leave the lamp on."],
-	["Flour from the western depots is", "being transferred to military", "bakeries under the new allocation.", "Civilian stocks will last [X].", "[X]", "Replacement coupons remain valid.", "[X]", "[X]", "Queues outside Depot 6 were", "dispersed by police on the orders", "of [X].", "The public notice will confirm", "that military production continues", "and replacement coupons are valid.", "Next stock review: 07 NOV.", "Retain the original inventory."],
-	["Shelter No. 14 remains listed", "as available in the public", "register dated 01 FEB.", "[X]", "[X]", "[X]", "The annex has a separate entrance.", "Its cellar is reserved for", "[X].", "Residents were directed to", "Shelter No. 9 on the next street.", "[X]", "The old register is still in use.", "[X]", "This report awaits press clearance.", "For the public bulletin, use", "the entries cleared by this office.", "Keep the inspection report sealed."],
-	["Residents awaiting transfer shall", "assemble at the western goods yard", "at 1800. Bring identity papers.", "Traffic report, 1600: the western", "passage is [X].", "[X]", "[X]", "No countersigned withdrawal", "has reached the district office.", "Transport allocation: two trucks.", "Both are assigned to [X]", "and [X].", "Until a withdrawal is signed,", "the assembly notice remains posted.", "Leave military traffic unobstructed.", "Retain the signed traffic report.", "Send only the cleared notice", "to district boards and the press."],
-	["Selected files will be moved", "to the inner district office.", "Collection: rear courtyard, 1800.", "Prepare an anonymous transfer copy.", "Remove names and service numbers", "from the records listed below.", "Shelter register, 20 APR:", "clearance signed by [X].", "Inspection: Warden [X].", "Goods yard notice, 21 APR:", "release signed by [X].", "[X]", "After collection, destroy the", "signed originals and carbon copies.", "No duplicate register is to remain.", "All remaining personnel shall", "continue work until individually", "relieved."],
+	"[X] The bridge remains open to returning traffic. Bridge traffic will cease at [X] on [X]. Engineers are standing by. Returns received: [X] killed, [X] wounded. [X] men available for duty. Names are still being checked. Stores are being moved east of the river. The next return is due tomorrow.",
+	"Departure from the east-bank depot: [X]. Vehicles allotted: [X]. Fuel issued: [X]. Loads comprise district records, medical stores and liaison equipment. Seats reserved: [X]. Patient return: [X]. [X] Vehicles will use Route [X]. Departure remains on schedule.",
+	"My leave has been put back again. I won't be home when I said. Please don't save any bread for me. Don't bring supper to West Station again. They won't let anyone through now. [X] I didn't see it myself. Please keep this between us. I should not have written about it. I'll mend the window when I get back. Until then, leave the lamp on.",
+	"Flour from the western depots has been assigned to military bakeries under the revised allocation. Civilian stock at Depot 6 is sufficient for [X] at the present rate of issue. [X] Replacement coupons remain valid. [X] Police assistance was requested at [X] after a queue formed outside the depot. Ration scales for staff on continuous duty are unchanged. Next stock return: 07 NOV. Retain the original inventory.",
+	"Shelter No. 14 remains on the public list issued on 01 FEB. [X] The annex is reached by a separate stair. Its places are reserved for [X]. Residents were directed to Shelter No. 9. [X] Pending clearance, the existing list remains in use.",
+	"Residents holding transfer papers are to report to the western goods yard at 1800. Bring identity papers and hand luggage only. Field report received at 1600: [X] The notice remains in force pending written amendment. Two trucks are allocated to [X] and [X]. Keep the signed field report at this office. Forward the cleared notice to district boards and the press.",
+	"Selected files are to be collected from the rear courtyard at 1800. Prepare one transfer sheet. Use file dates and subjects. Personnel names and internal receipt entries are not required on the forwarding copy. 20 APR - SHELTER REGISTER. Clearance: Major [X]. Inspection: Warden [X]. 21 APR - GOODS YARD NOTICE. Release: [X]. [X] Once receipt is acknowledged, destroy the local originals and carbon copies. Remain at your desk until the collection officer arrives.",
 ]
 
 
@@ -23,6 +23,14 @@ func _run() -> void:
 	await process_frame
 	var paper = scene.get_node("Paper")
 	var document = paper.document
+	var legacy_page: Dictionary = document.PAGES[0].duplicate(true)
+	legacy_page.erase("sentence_rows")
+	document.set_page(legacy_page)
+	await process_frame
+	for index in range(legacy_page.sentences.size()):
+		assert(document._sentence_row(index) == int(legacy_page.body_row) + index * 3)
+		assert(document.line_rect(index, 0) == document._line_rect(legacy_page.sentences[index][0], int(legacy_page.body_row) + index * 3))
+	document.set_page(document.PAGES[0])
 	var notifications: Array[int] = [0]
 	paper.target_redacted.connect(func(_index: int) -> void: notifications[0] += 1)
 	paper.animate = false
@@ -44,7 +52,10 @@ func _run() -> void:
 			else:
 				for line_index in range(page.sentences[target.sentence].size()):
 					released[offset + line_index] = "[X]"
-		assert(released == RELEASED[page_index], "The fully redacted report must match the planned meaning")
+		var cleared_text := " ".join(released)
+		while cleared_text.contains("[X] [X]"):
+			cleared_text = cleared_text.replace("[X] [X]", "[X]")
+		assert(cleared_text == RELEASED[page_index], "The fully redacted report must match the planned meaning")
 	for viewport_size in [Vector2i(1152, 648), Vector2i(1920, 1080), Vector2i(900, 900)]:
 		root.size = viewport_size
 		await process_frame
@@ -55,11 +66,12 @@ func _run() -> void:
 			if page.get("kind", "") == "newspaper":
 				assert(document.target_at(Vector2(500, 500)) == -1 and not document.is_complete())
 				continue
-			if page_index >= 4:
-				for sentence_index in range(page.sentences.size()):
-					for line_index in range(page.sentences[sentence_index].size()):
-						var bounds: Rect2 = document.line_rect(sentence_index, line_index)
-						assert(bounds.end.x < 970 and bounds.end.y < 1390, "Late letters must fit the paper")
+			for sentence_index in range(page.sentences.size()):
+				for line_index in range(page.sentences[sentence_index].size()):
+					var bounds: Rect2 = document.line_rect(sentence_index, line_index)
+					assert(bounds.end.x < 970 and bounds.end.y < 1390, "Every letter must fit the paper")
+			var footer_end: float = document.FIRST_BASELINE + (page.footer_row + page.footer.size() - 1) * float(page.line_height) + 12.0
+			assert(footer_end < 1380, "Keep signatures within the printable area above the worn paper edge")
 			for target_index in range(page.targets.size()):
 				assert(document.target_rects(target_index).size() == 1, "A marked line must require its own click")
 				for bounds in document.target_rects(target_index):

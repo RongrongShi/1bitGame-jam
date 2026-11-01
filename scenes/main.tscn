@@ -11,15 +11,14 @@
 [ext_resource type="Script" uid="uid://b0uepq7tfkca3" path="res://scenes/title_card.gd" id="9_85g3d"]
 [ext_resource type="Script" uid="uid://bu4stb2hxniv8" path="res://scenes/dialogue_box.gd" id="10_choun"]
 [ext_resource type="Texture2D" uid="uid://ciovm5jqv4qba" path="res://assets/Officer_Doorway.png" id="11_officer"]
-[ext_resource type="AudioStream" path="res://assets/audio/Gunshot.wav" id="12_gunshot"]
+[ext_resource type="AudioStream" uid="uid://bif8qqgfk3krn" path="res://assets/audio/Gunshot.wav" id="12_gunshot"]
 [ext_resource type="FontVariation" path="res://assets/fonts/SourceSans3-Bold.tres" id="13_subtitles"]
 [ext_resource type="Texture2D" uid="uid://c086rmrm8t5nh" path="res://assets/Newspaper_Folded.png" id="14_newspaper"]
 [ext_resource type="Shader" uid="uid://85mpiei6qj51" path="res://scenes/one_bit.gdshader" id="15_one_bit"]
 [ext_resource type="Script" uid="uid://dr2g3hso0pw3o" path="res://scenes/document_text.gd" id="16_document_text"]
-
-[ext_resource type="Texture2D" path="res://assets/Newspaper_WestStation.png" id="17_station"]
-[ext_resource type="AudioStream" path="res://assets/audio/music_drafts/Main Loop.mp3" id="18_music"]
-[ext_resource type="Script" path="res://scenes/bombardment.gd" id="19_bombardment"]
+[ext_resource type="Texture2D" uid="uid://d0cgrmc4bq1fw" path="res://assets/Newspaper_WestStation.png" id="17_station"]
+[ext_resource type="AudioStream" uid="uid://bepjugskpfchp" path="res://assets/audio/music_drafts/Main Loop.mp3" id="18_music"]
+[ext_resource type="Script" uid="uid://dgwl5kh266umd" path="res://scenes/bombardment.gd" id="19_bombardment"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_desk"]
 shader = ExtResource("3_perspective")
@@ -31,13 +30,13 @@ shader = ExtResource("3_perspective")
 shader_parameter/top_width = 0.8395
 shader_parameter/edge_roughness = 0.0
 
+[sub_resource type="ViewportTexture" id="ViewportTexture_document"]
+viewport_path = NodePath("Paper/PaperViewport")
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_newspaper"]
 shader = ExtResource("3_perspective")
 shader_parameter/top_width = 0.94
 shader_parameter/edge_roughness = 0.0
-
-[sub_resource type="ViewportTexture" id="ViewportTexture_document"]
-viewport_path = NodePath("Paper/PaperViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_newspaper"]
 viewport_path = NodePath("NewspaperArticle/PaperViewport")
@@ -78,11 +77,11 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_tipki")
 
-[node name="BackgroundMusic" type="AudioStreamPlayer" parent="."]
+[node name="BackgroundMusic" type="AudioStreamPlayer" parent="." unique_id=395311636]
 stream = ExtResource("18_music")
 volume_db = -16.0
 
-[node name="PaperHandling" type="AudioStreamPlayer" parent="."]
+[node name="PaperHandling" type="AudioStreamPlayer" parent="." unique_id=1248050500]
 volume_db = -9.0
 
 [node name="Background" type="ColorRect" parent="." unique_id=641257913]
@@ -147,7 +146,7 @@ mouse_filter = 2
 texture = ExtResource("2_paper")
 expand_mode = 1
 
-[node name="PressPhoto" type="TextureRect" parent="Paper/PaperViewport"]
+[node name="PressPhoto" type="TextureRect" parent="Paper/PaperViewport" unique_id=2107651798]
 visible = false
 offset_left = 120.0
 offset_top = 365.0
@@ -200,7 +199,7 @@ mouse_filter = 2
 texture = ExtResource("2_paper")
 expand_mode = 1
 
-[node name="PressPhoto" type="TextureRect" parent="NewspaperArticle/PaperViewport"]
+[node name="PressPhoto" type="TextureRect" parent="NewspaperArticle/PaperViewport" unique_id=1090368832]
 visible = false
 offset_left = 120.0
 offset_top = 365.0
@@ -243,7 +242,6 @@ stretch_mode = 5
 flip_h = true
 
 [node name="FoldedNewspaper" type="TextureRect" parent="." unique_id=927816728]
-visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.34
@@ -289,7 +287,7 @@ expand_mode = 1
 
 [node name="WorkCamera" type="Camera2D" parent="." unique_id=1640216730]
 
-[node name="Bombardment" type="Node" parent="." node_paths=PackedStringArray("camera")]
+[node name="Bombardment" type="Node" parent="." unique_id=1077198101 node_paths=PackedStringArray("camera")]
 script = ExtResource("19_bombardment")
 camera = NodePath("../WorkCamera")
 
@@ -306,7 +304,6 @@ backdrop = ExtResource("11_officer")
 
 [node name="Gunshot" type="AudioStreamPlayer" parent="." unique_id=1249978349]
 stream = ExtResource("12_gunshot")
-volume_db = 0.0
 
 [node name="OneBit" type="CanvasLayer" parent="." unique_id=756458582]
 layer = 100

@@ -1,5 +1,6 @@
 # Godot generated cache and editor data
 .godot/
+build/
 
 # IDE settings
 .vscode/

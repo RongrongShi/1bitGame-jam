@@ -73,12 +73,12 @@ func _ready() -> void:
 	_text.anchor_bottom = 0.95
 
 
-func show_lines(lines: Array, fade_out := true, finish_last := false) -> void:
+func show_lines(lines: Array, fade_out := true, finish_last := false, image: Texture2D = null, brightness := 0.9) -> void:
 	_accepting_input = false
 	_keystroke.stop()
 	_text.text = ""
-	if backdrop != null:
-		_root.get_node("OfficerBackground").texture = backdrop
+	_root.get_node("OfficerBackground").self_modulate = Color(brightness, brightness, brightness)
+	_root.get_node("OfficerBackground").texture = image if image != null else backdrop
 	_root.modulate.a = 0.0
 	_text.modulate.a = 0.0
 	_root.visible = true

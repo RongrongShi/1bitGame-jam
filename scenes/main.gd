@@ -15,17 +15,32 @@ const CALLBACK_LINES := [
 	"Glory to the Reich.",
 ]
 const INTRO_LINES := [
-	"Sit down. Scheiße. This is your post now.",
+	"Sit down. Scheiße. I'm Major Lange. You answer to me here.",
 	"Our army is making a strategic withdrawal. Those damned Allies will pay for every step.",
-	"These files are classified. You will remove anything that must not leave this room.",
-	"The passages have been marked. Black them out. Even you can manage that.",
+	"This office clears press extracts, public notices and outgoing letters.",
+	"Military originals stay sealed. Work on the copies marked for release.",
+	"Private letters go to their addressees. The press receives only what we clear.",
+	"The marked passages are not for circulation. Black them out. Even you can manage that.",
 	"Certain facts are not for the public. They breed panic. Panic serves the enemy.",
 ] + CALLBACK_LINES
+
+const INTERLUDE_LINES := {
+	3: [
+		"Good work. You're getting the hang of it.",
+		"Here. Something to pass the quiet hours.",
+		"The morning paper. Read it when you like, so long as the work gets done.",
+	],
+	4: [
+		"Our batteries have begun returning fire.",
+		"Let the artillery do its work. You have yours.",
+		"Keep the documents in order. We'll be needing them.",
+	],
+}
 
 const ENDING_LINES := [
 	"The files are ready for collection.",
 	"You have served the Reich well.",
-	"Now we must make certain that nothing leaves this room.",
+	"Your work here is complete.",
 ] + CALLBACK_LINES
 const ENDING_POSES = [
 	preload("res://assets/Officer_TakeGun1.png"),
@@ -35,6 +50,7 @@ const ENDING_POSES = [
 
 var page_index := 0
 var busy := true
+var _awaiting_finish_click := false
 var _paper_was_busy := true
 var _ink_was_visible := true
 var _camera_tween: Tween
@@ -54,10 +70,6 @@ func _ready() -> void:
 	page_sounds.add_stream(-1, preload("res://assets/audio/paper-handling_2.mp3"))
 	$PaperHandling.stream = page_sounds
 	camera.position = get_viewport().get_visible_rect().size * 0.5
-	var dither: ShaderMaterial = $OneBit/Screen.material
-	var desk_pixel_size: float = dither.get_shader_parameter("pixel_size")
-	dialogue_box._root.visibility_changed.connect(func() -> void:
-		dither.set_shader_parameter("pixel_size", maxf(desk_pixel_size, 2.0) if dialogue_box._root.visible else desk_pixel_size))
 	top.target_redacted.connect(_on_target_redacted)
 	folded_newspaper.gui_input.connect(_on_newspaper_input)
 	get_viewport().size_changed.connect(func() -> void: call_deferred("_fit_work_view"))
@@ -87,6 +99,17 @@ func _start_letter() -> void:
 		article.get_node("DocumentViewport/Document").set_page(preload("res://scenes/pages.gd").NEWSPAPERS[page_index - 3])
 	$Bombardment.set_day(page_index + 1)
 	$BackgroundMusic.volume_db = -19.0 if page_index >= 5 else -16.0
+	if INTERLUDE_LINES.has(page_index):
+		if page_index == 4:
+			$Bombardment.countdown = 0.0
+			await get_tree().create_timer(0.6).timeout
+		if page_index == 3:
+			await dialogue_box.show_lines(INTERLUDE_LINES[page_index], true, false,
+				preload("res://assets/Officer_TakeNewspaper.png"), 0.81)
+			$PaperHandling.play()
+		else:
+			await dialogue_box.show_lines(INTERLUDE_LINES[page_index])
+		await get_tree().create_timer(BLACK_PAUSE).timeout
 	await title_card.reveal()
 	await get_tree().create_timer(WIDE_PAUSE).timeout
 	await _zoom(true)
@@ -131,13 +154,18 @@ func _zoom(working: bool, paper: TextureRect = top) -> void:
 func _on_target_redacted(_index: int) -> void:
 	if busy or not top.document.is_complete():
 		return
-	busy = true
 	top.busy = true
+	_awaiting_finish_click = true
+
+
+func _finish_letter() -> void:
+	busy = true
 	$PaperHandling.play()
 	await _zoom(false)
 	await get_tree().create_timer(WIDE_PAUSE).timeout
 	await title_card.fade_to_black()
-	$Bombardment.stop()
+	if page_index + 1 < top.document.PAGES.size():
+		$Bombardment.stop()
 	letter_finished.emit(page_index)
 	await get_tree().create_timer(BLACK_PAUSE).timeout
 	if page_index + 1 < top.document.PAGES.size():
@@ -153,6 +181,7 @@ func _play_ending() -> void:
 	dialogue_box.line_started.disconnect(_on_ending_line)
 	title_card.cut_to_black()
 	$BackgroundMusic.stop()
+	$Bombardment.stop()
 	$Gunshot.play()
 
 
@@ -160,10 +189,11 @@ func _on_ending_line(index: int) -> void:
 	var pose := index - (ENDING_LINES.size() - CALLBACK_LINES.size())
 	if pose >= 0:
 		dialogue_box._root.get_node("OfficerBackground").texture = ENDING_POSES[pose]
+		dialogue_box._root.get_node("OfficerBackground").self_modulate = Color(0.81, 0.81, 0.81)
 
 
 func _on_newspaper_input(event: InputEvent) -> void:
-	if not busy and not top.busy and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	if not busy and (not top.busy or _awaiting_finish_click) and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		folded_newspaper.accept_event()
 		_open_newspaper()
 
@@ -188,6 +218,14 @@ func _input(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			get_viewport().set_input_as_handled()
 			_close_newspaper()
+		return
+	if _awaiting_finish_click and not busy and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var newspaper_point: Vector2 = folded_newspaper.get_global_transform_with_canvas().affine_inverse() * event.position
+		if folded_newspaper.visible and Rect2(Vector2.ZERO, folded_newspaper.size).has_point(newspaper_point):
+			return
+		_awaiting_finish_click = false
+		get_viewport().set_input_as_handled()
+		_finish_letter()
 
 
 func _close_newspaper() -> void:

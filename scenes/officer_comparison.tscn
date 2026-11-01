@@ -1,0 +1,93 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/Officer_Doorway.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/Officer_TakeGun1.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/Officer_TakeGun2.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/Officer_TakeGun3.png" id="4"]
+[ext_resource type="Shader" path="res://scenes/one_bit.gdshader" id="5"]
+
+[ext_resource type="Script" path="res://scenes/officer_comparison.gd" id="6"]
+[ext_resource type="Texture2D" path="res://assets/Officer_TakeNewspaper.png" id="7"]
+
+[sub_resource type="ShaderMaterial" id="Dither"]
+shader = ExtResource("5")
+shader_parameter/pixel_size = 1.0
+shader_parameter/contrast = 1.15
+
+[node name="OfficerComparison" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+script = ExtResource("6")
+
+[node name="Standing" type="TextureRect" parent="."]
+self_modulate = Color(0.9, 0.9, 0.9, 1)
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("1")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="DrawGun" type="TextureRect" parent="."]
+self_modulate = Color(0.81, 0.81, 0.81, 1)
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="RaiseGun" type="TextureRect" parent="."]
+self_modulate = Color(0.81, 0.81, 0.81, 1)
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("3")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="AimGun" type="TextureRect" parent="."]
+self_modulate = Color(0.81, 0.81, 0.81, 1)
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("4")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TakeNewspaper" type="TextureRect" parent="."]
+self_modulate = Color(0.81, 0.81, 0.81, 1)
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("7")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="OneBit" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="Screen" type="ColorRect" parent="OneBit"]
+material = SubResource("Dither")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Labels" type="CanvasLayer" parent="."]
+layer = 103
+
+[node name="Current" type="Label" parent="Labels"]
+offset_left = 12.0
+offset_top = 12.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+text = "1 / 5 — Standing"
+mouse_filter = 2

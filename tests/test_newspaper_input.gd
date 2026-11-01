@@ -29,6 +29,7 @@ func _run() -> void:
 	scene.page_index = 3
 	scene.get_node("TitleCard").fade_time = 0.01
 	root.add_child(scene)
+	await preload("res://tests/interlude_driver.gd").play(self, scene, 3)
 	await scene.work_started
 	scene.top.document.redact_target(0)
 	scene._open_newspaper()
@@ -60,6 +61,23 @@ func _run() -> void:
 		scene.top.document.redact_target(index)
 	audio.stop()
 	scene._on_target_redacted(0)
+	assert(scene._awaiting_finish_click and not audio.playing)
+	for viewport_size in [Vector2i(1152, 648), Vector2i(900, 900)]:
+		root.size = viewport_size
+		await process_frame
+		await process_frame
+		var newspaper = scene.folded_newspaper
+		var point: Vector2 = newspaper.get_global_transform_with_canvas() * (newspaper.size * 0.5)
+		_click(point)
+		assert(scene.article.visible and scene._awaiting_finish_click, "The completed letter must still allow opening the newspaper")
+		await _wait_idle(scene)
+		_click(Vector2(4, 4))
+		assert(not scene.article.visible and scene._awaiting_finish_click, "Closing the newspaper must not end the letter")
+		_click(Vector2(4, 4))
+		assert(scene._awaiting_finish_click, "Clicks during the return zoom must not end the letter")
+		await _wait_idle(scene)
+		assert(scene.top.busy and scene.top.document.is_complete())
+	_click(Vector2(4, 4))
 	assert(scene.busy and audio.playing, "Letter completion must play as the camera starts pulling back")
 	await scene.letter_finished
 	assert(scene.camera.zoom.is_equal_approx(Vector2.ONE))

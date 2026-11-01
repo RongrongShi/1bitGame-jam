@@ -20,6 +20,7 @@ func _run() -> void:
 	scene.page_index = 3
 	scene.get_node("TitleCard").fade_time = 0.01
 	root.add_child(scene)
+	await preload("res://tests/interlude_driver.gd").play(self, scene, 3)
 	await scene.work_started
 	scene.top.document.redact_target(0)
 	var ink_visible: bool = scene.get_node("InkBottle").visible

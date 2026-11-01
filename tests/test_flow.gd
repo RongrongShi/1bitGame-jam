@@ -68,6 +68,13 @@ func _run() -> void:
 			if target_index < paper.document.page.targets.size() - 1:
 				await paper.target_redacted
 				assert(not scene.busy and scene.page_index == page_index)
+		await paper.target_redacted
+		assert(scene._awaiting_finish_click)
+		var work_zoom: Vector2 = scene.camera.zoom
+		await create_timer(0.3).timeout
+		assert(scene.camera.zoom == work_zoom and scene.page_index == page_index)
+		_click_screen(Vector2(4, 4))
+		assert(not scene._awaiting_finish_click)
 		await _check_pullback_hold(scene)
 		await scene.letter_finished
 		assert(paper.document.is_complete() and scene.busy and paper.busy)
@@ -77,6 +84,8 @@ func _run() -> void:
 		assert(scene.title_card._shade.modulate.a == 1.0)
 		assert(scene.title_card._label.text.is_empty())
 		if page_index < 6:
+			if page_index in [2, 3]:
+				await preload("res://tests/interlude_driver.gd").play(self, scene, page_index + 1)
 			await _check_entry_hold(scene)
 			await scene.work_started
 		else:
@@ -99,7 +108,7 @@ func _run() -> void:
 		await create_timer(0.01).timeout
 		assert(not scene.title_card._label.text.begins_with("DAY"))
 		if scene.dialogue_box._root.visible and scene.dialogue_box._accepting_input:
-			assert(scene.get_node("OneBit/Screen").material.get_shader_parameter("pixel_size") == 2.0)
+			assert(scene.get_node("OneBit/Screen").material.get_shader_parameter("pixel_size") == 1.0)
 			if not saw_dialogue:
 				await RenderingServer.frame_post_draw
 				root.get_texture().get_image().save_png("res://.godot/cinematic-subtitles-preview.png")

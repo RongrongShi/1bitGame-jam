@@ -2,34 +2,24 @@
 extends TextureRect
 
 @export var animate := true
-@export var sweep_time := 0.6
+@export_range(1.0, 10000.0) var stroke_speed := 900.0
 @export var line_pause := 0.08
 
 @onready var document = $DocumentViewport/Document
 
-var busy := false
-var dragging := false
-var previous_point := Vector2(-1, -1)
+signal target_redacted(index: int)
+
+var busy := true
+var _brush_audio: AudioStreamPlayer
 
 
 func _ready() -> void:
-	mouse_exited.connect(_clear_hover)
-
-
-func _clear_hover() -> void:
-	document.set_hovered_word(-1)
-	previous_point = Vector2(-1, -1)
-	mouse_default_cursor_shape = CURSOR_ARROW
-
-
-func _input(event: InputEvent) -> void:
-	# A release outside the paper must also end the brush stroke.
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		dragging = false
-		previous_point = Vector2(-1, -1)
-	if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) == 0:
-		dragging = false
-
+	if Engine.is_editor_hint():
+		return
+	_brush_audio = AudioStreamPlayer.new()
+	_brush_audio.name = "BrushStroke"
+	_brush_audio.stream = preload("res://assets/audio/paper_strokes/02-soft-ink-brush-gentle/long.wav")
+	add_child(_brush_audio)
 
 
 # Local point -> document point (inverse perspective).
@@ -59,38 +49,38 @@ func document_to_local(point: Vector2) -> Vector2:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if Engine.is_editor_hint():
-		return
-	if busy:
-		dragging = false
-		_clear_hover()
+	if Engine.is_editor_hint() or busy:
+		mouse_default_cursor_shape = CURSOR_ARROW
 		return
 	if event is InputEventMouse:
-		var point := document_position(event.position)
-		var index: int = document.word_at(point)
-		document.set_hovered_word(index)
+		var index: int = document.target_at(document_position(event.position))
 		mouse_default_cursor_shape = CURSOR_POINTING_HAND if index >= 0 else CURSOR_ARROW
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-			dragging = event.pressed
-			previous_point = point if dragging else Vector2(-1, -1)
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and index >= 0:
 			accept_event()
-		elif event is InputEventMouseMotion and dragging and event.button_mask & MOUSE_BUTTON_MASK_LEFT:
-			var page := Rect2(Vector2.ZERO, Vector2($DocumentViewport.size))
-			if page.has_point(previous_point) and page.has_point(point) and not point.is_equal_approx(previous_point):
-				document.redact_stroke(previous_point, point, sweep_time if animate else 0.0)
-			previous_point = point
-			accept_event()
+			if animate:
+				_redact_animated(index)
+			else:
+				document.redact_target(index)
+				target_redacted.emit(index)
 
 
-# Sweep a black bar across each line of the sentence, one line after another.
+# Sweep marked spans at a constant number of document pixels per second.
 func _redact_animated(index: int) -> void:
 	busy = true
-	var line_count: int = document.sentences[index].size()
-	for line_index in range(line_count):
+	var rectangles: Array[Rect2] = document.target_rects(index)
+	for line_index in range(rectangles.size()):
+		var duration := rectangles[line_index].size.x / stroke_speed
+		_brush_audio.volume_db = 0.0
+		_brush_audio.pitch_scale = minf(1.0, _brush_audio.stream.get_length() / duration)
+		_brush_audio.play()
 		var tween := create_tween()
-		tween.tween_method(func(t: float) -> void: document.set_line_progress(index, line_index, t),
-			0.0, 1.0, sweep_time)
+		tween.tween_method(func(t: float) -> void: document.set_target_progress(index, line_index, t),
+			0.0, 1.0, duration)
+		tween.parallel().tween_property(_brush_audio, "volume_db", -45.0, minf(0.035, duration)).set_delay(maxf(0.0, duration - 0.035))
 		await tween.finished
+		_brush_audio.stop()
 		await get_tree().create_timer(line_pause).timeout
-	document.redact_sentence(index)
+	document.redact_target(index)
 	busy = false
+	mouse_default_cursor_shape = CURSOR_ARROW
+	target_redacted.emit(index)

@@ -28,7 +28,12 @@ func _ready() -> void:
 	_label.add_theme_font_size_override("font_size", font_size)
 	if font != null:
 		_label.add_theme_font_override("font", font)
-	_shade.add_child(_label)
+	var text_layer := CanvasLayer.new()
+	text_layer.layer = 102
+	text_layer.visible = false
+	add_child(text_layer)
+	text_layer.add_child(_label)
+	_shade.visibility_changed.connect(func() -> void: text_layer.visible = _shade.visible)
 	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
@@ -38,7 +43,7 @@ func show_card(text: String) -> void:
 	_label.modulate.a = 0.0
 	_shade.modulate.a = 1.0
 	_shade.visible = true
-	var tween := create_tween()
+	var tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(_label, "modulate:a", 1.0, fade_time)
 	tween.tween_interval(hold_time)
 	tween.tween_property(_label, "modulate:a", 0.0, fade_time)
@@ -47,7 +52,22 @@ func show_card(text: String) -> void:
 
 # Fade the black screen away to reveal the desk.
 func reveal() -> void:
-	var tween := create_tween()
+	var tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(_shade, "modulate:a", 0.0, fade_time)
 	await tween.finished
 	_shade.visible = false
+
+
+func cut_to_black() -> void:
+	_label.text = ""
+	_shade.modulate.a = 1.0
+	_shade.visible = true
+
+
+func fade_to_black() -> void:
+	_label.text = ""
+	_shade.modulate.a = 0.0
+	_shade.visible = true
+	var tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_shade, "modulate:a", 1.0, fade_time)
+	await tween.finished

@@ -9,84 +9,153 @@ func _run() -> void:
 	var scene = load("res://scenes/main.tscn").instantiate()
 	scene.play_intro = false
 	root.add_child(scene)
-	await process_frame
-	assert(root.has_node("Game"), "Game autoload must load without a pre-existing UID cache")
-	for label in [scene.dialogue_box._speaker, scene.dialogue_box._text, scene.dialogue_box._hint, scene.title_card._label]:
-		var color: Color = label.get_theme_color("font_color")
-		assert(color.r == color.g and color.g == color.b, "Intro UI must stay monochrome")
-	await scene._use_ink()
-	await create_timer(0.3).timeout
-	assert(scene.page_index == 0 and not scene.busy, "Incomplete files must not advance")
-	for page_index in range(3):
+	assert(scene.title_card.fade_time == 1.8 and scene.dialogue_box.fade_time == 1.8)
+	await _check_entry_hold(scene)
+	await scene.work_started
+	assert(scene.INTRO_LINES.slice(scene.INTRO_LINES.size() - scene.CALLBACK_LINES.size()) == scene.CALLBACK_LINES)
+	assert(not scene.has_node("PaperNext") and not scene.has_node("DiscardSpot"))
+	assert(scene.top.document.PAGES.size() == 7)
+	for page_index in range(7):
+		print("Checking work session ", page_index + 1)
+		scene.get_node("Bombardment").stop()
+		assert(scene.page_index == page_index and not scene.busy and not scene.top.busy)
+		assert(scene.top.visible and scene.top.document.redacted.is_empty())
+		assert(scene.folded_newspaper.visible == (page_index >= 3))
+		assert(scene.camera.zoom.x > 1.0)
+		var focused: Vector2 = scene.top.get_global_transform_with_canvas() * (scene.top.size * 0.5)
+		assert(focused.distance_to(Vector2(root.size) * 0.5) < 2.0)
+		if page_index >= 3:
+			assert(scene.article.get_node("DocumentViewport/Document").page.edition == page_index + 1)
+			var newspaper_click := InputEventMouseButton.new()
+			newspaper_click.button_index = MOUSE_BUTTON_LEFT
+			newspaper_click.pressed = true
+			scene.top.busy = true
+			scene._on_newspaper_input(newspaper_click)
+			assert(not scene.article.visible and not scene.busy, "Let an active brush stroke finish before opening the newspaper")
+			scene.top.busy = false
+			scene.top.document.redact_target(0)
+			scene.top.document.set_target_progress(1, 0, 0.4)
+			for viewport_size in [Vector2i(1152, 648), Vector2i(900, 900)]:
+				root.size = viewport_size
+				await process_frame
+				await process_frame
+				scene._open_newspaper()
+				await _wait_idle(scene)
+				assert(scene.article.visible and scene.top.busy and not scene.top.visible)
+				assert(scene.camera.zoom.x > 1.0)
+				_click_screen(Vector2(30, 30), MOUSE_BUTTON_RIGHT)
+				assert(scene.article.visible)
+				await RenderingServer.frame_post_draw
+				root.get_texture().get_image().save_png("res://.godot/newspaper-day-%d-%d.png" % [page_index + 1, viewport_size.x])
+				_click_screen(Vector2(30, 30))
+				await _wait_idle(scene)
+				assert(scene.top.visible and not scene.top.busy and scene.folded_newspaper.visible)
+				assert(scene.top.document.redacted == [0])
+				assert(scene.top.document.target_progress[Vector2i(1, 0)] == 0.4)
+			scene.top.document.set_page(scene.top.document.PAGES[page_index])
+		root.size = Vector2i(1152, 648)
+		await process_frame
+		await process_frame
 		var paper = scene.top
-		var document = paper.document
-		assert(document.page == document.PAGES[page_index])
-		assert(document.redacted_words.is_empty() and document.redacted.is_empty())
-		for word in document.words:
-			assert(word.rect.end.x < 960, "Every page must fit the paper")
-		var center: Vector2 = document.words[0].rect.get_center()
-		paper.busy = true
-		var click := InputEventMouseButton.new()
-		click.position = paper.document_to_local(center)
-		click.button_index = MOUSE_BUTTON_LEFT
-		click.pressed = true
-		paper._gui_input(click)
-		assert(not paper.dragging, "Reading and page-turn animations must block painting")
-		paper.busy = false
-		document.redact_stroke(center, center + Vector2(1, 0), 0.08)
-		assert(document.word_progress[0] == 0.0)
-		await create_timer(0.12).timeout
-		assert(document.word_progress[0] == 1.0, "Animated word redaction must finish")
-		document.redact_stroke(document.words[1].rect.get_center(), document.words[1].rect.get_center() + Vector2(1, 0), 0.2)
-		document.set_page(document.PAGES[page_index])
-		await create_timer(0.25).timeout
-		assert(document.redacted_words.is_empty() and document.word_progress.is_empty(), "Page reset must cancel old ink animations")
-		paper.sweep_time = 0.01
+		paper.stroke_speed = 90000.0
 		paper.line_pause = 0.0
-		await paper._redact_animated(document.page.targets[0])
-		assert(document.is_redacted(document.page.targets[0]), "Existing sentence animation must still work")
-		document.set_page(document.PAGES[page_index])
-		for word in document.words:
-			if word.sentence in document.page.targets:
-				var point: Vector2 = word.rect.get_center()
-				document.redact_stroke(point, point + Vector2(1, 0), 0.03)
-		assert(not document.is_complete(), "Submission must wait for the ink animation")
-		await create_timer(0.08).timeout
-		assert(document.is_complete(), "Word painting must satisfy existing sentence targets")
-		await RenderingServer.frame_post_draw
-		await scene._use_ink()
-		assert(scene._pile.size() == page_index + 1, "Finished pages must enter the discard pile")
-		if page_index < 2:
-			assert(scene.page_index == page_index + 1 and not scene.busy)
-			assert(scene.top.visible and not scene.top.busy)
+		for target_index in range(paper.document.page.targets.size()):
+			var click := InputEventMouseButton.new()
+			click.position = paper.document_to_local(paper.document.target_rects(target_index)[0].get_center())
+			click.button_index = MOUSE_BUTTON_LEFT
+			click.pressed = true
+			paper._gui_input(click)
+			if target_index < paper.document.page.targets.size() - 1:
+				await paper.target_redacted
+				assert(not scene.busy and scene.page_index == page_index)
+		await _check_pullback_hold(scene)
+		await scene.letter_finished
+		assert(paper.document.is_complete() and scene.busy and paper.busy)
+		assert(scene.camera.zoom.is_equal_approx(Vector2.ONE))
+		assert(scene.get_node("Bombardment").day == 0)
+		assert(scene.camera.offset == Vector2.ZERO)
+		assert(scene.title_card._shade.modulate.a == 1.0)
+		assert(scene.title_card._label.text.is_empty())
+		if page_index < 6:
+			await _check_entry_hold(scene)
+			await scene.work_started
 		else:
-			assert(scene.busy and not scene.top.visible, "Final file must end the review")
+			await create_timer(scene.BLACK_PAUSE + 0.2).timeout
+			assert(scene.page_index == 6 and scene.busy and scene.title_card._shade.visible)
+			assert(scene.dialogue_box._root.visible and not scene.get_node("Gunshot").playing)
 	scene.queue_free()
 	await process_frame
 	scene = load("res://scenes/main.tscn").instantiate()
 	scene.play_intro = false
 	root.add_child(scene)
-	await process_frame
 	scene.title_card.fade_time = 0.01
+	await scene.work_started
+	scene.busy = true
+	scene.top.busy = true
 	scene.title_card.hold_time = 0.01
 	scene._play_intro()
 	var saw_dialogue := false
-	var saw_reading := false
-	for frame in range(300):
+	for frame in range(1500):
 		await create_timer(0.01).timeout
-		if scene.dialogue_box._root.visible:
+		assert(not scene.title_card._label.text.begins_with("DAY"))
+		if scene.dialogue_box._root.visible and scene.dialogue_box._accepting_input:
+			assert(scene.get_node("OneBit/Screen").material.get_shader_parameter("pixel_size") == 2.0)
+			if not saw_dialogue:
+				await RenderingServer.frame_post_draw
+				root.get_texture().get_image().save_png("res://.godot/cinematic-subtitles-preview.png")
 			saw_dialogue = true
 			scene.dialogue_box._press()
-		if scene._reading:
-			saw_reading = true
-			assert(scene.top.busy)
-			var skip := InputEventKey.new()
-			skip.keycode = KEY_ENTER
-			skip.pressed = true
-			scene._input(skip)
-		if saw_reading and not scene.busy:
+			assert(scene.dialogue_box._root.get_child_count() == 1, "Only the background is below dithering; subtitles use their own layer")
+			assert(scene.dialogue_box._text.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER)
+			assert(scene.dialogue_box._text.get_theme_constant("outline_size") == 6)
+			assert(scene.dialogue_box._text.get_theme_font("font").resource_path.ends_with("SourceSans3-Bold.tres"))
+			await RenderingServer.frame_post_draw
+			assert(scene.dialogue_box._text.get_minimum_size().y <= scene.dialogue_box._text.size.y, "Subtitles must fit their safe area")
+		if saw_dialogue and not scene.busy:
 			break
-	assert(saw_dialogue and saw_reading and not scene.busy, "Intro, dialogue and reading skip must reach playable desk")
-	assert(not scene.title_card._shade.visible and not scene.dialogue_box._root.visible)
-	print("PASS: animated words, sentence animation, page reset, all three submissions, discard pile, intro, dialogue and reading skip")
+	assert(saw_dialogue and not scene.busy and not scene.top.busy)
+	assert(scene.get_node("OneBit/Screen").material.get_shader_parameter("pixel_size") == 1.0)
+	assert(scene.camera.zoom.x > 1.0 and not scene.title_card._shade.visible)
+	print("PASS: one-second wide holds, slow transitions, cinematic subtitles, marked targets, seven letters, four optional newspapers, click to read/close at two sizes and final officer entrance")
 	quit()
+
+
+func _check_entry_hold(scene: Node) -> void:
+	var start := Time.get_ticks_msec()
+	while scene.title_card._shade.visible:
+		assert(Time.get_ticks_msec() - start < 10000, "Reveal must finish")
+		await process_frame
+	assert(scene.busy and scene.top.busy and scene.camera.zoom.is_equal_approx(Vector2.ONE))
+	await create_timer(0.8).timeout
+	assert(scene.camera.zoom.is_equal_approx(Vector2.ONE), "Stay wide for a full second before zooming in")
+	assert(scene.busy and scene.top.busy)
+
+
+func _check_pullback_hold(scene: Node) -> void:
+	var start := Time.get_ticks_msec()
+	while not scene.camera.zoom.is_equal_approx(Vector2.ONE):
+		assert(Time.get_ticks_msec() - start < 10000, "Pullback must finish")
+		await process_frame
+	assert(not scene.title_card._shade.visible)
+	await create_timer(0.8).timeout
+	assert(not scene.title_card._shade.visible, "Stay wide for a full second before fading to black")
+	assert(scene.busy and scene.top.busy)
+
+
+func _click_screen(point: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
+	var event := InputEventMouseButton.new()
+	event.position = point
+	event.button_index = button
+	event.pressed = true
+	root.push_input(event, true)
+	event = event.duplicate()
+	event.pressed = false
+	root.push_input(event, true)
+
+
+func _wait_idle(scene: Node) -> void:
+	assert(scene.busy, "Newspaper interaction must begin")
+	var start := Time.get_ticks_msec()
+	while scene.busy:
+		assert(Time.get_ticks_msec() - start < 5000)
+		await process_frame

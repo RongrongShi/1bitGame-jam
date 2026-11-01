@@ -1,5 +1,15 @@
 extends SceneTree
 
+const RELEASED = [
+	["At [X] on [X], the bridge", "remained open to road traffic.", "Routine inspections continue.", "At the western bridgehead,", "[X]", "[X]", "Losses: [X] dead, [X] wounded.", "Remaining strength: [X] men.", "Roll calls are still under way.", "Supply vehicles use the bridge", "without interruption.", "Next inspection: 03 NOV."],
+	["Transport order: 03 NOV, [X].", "Available trucks: [X].", "Fuel allocation: [X] barrels.", "Priority passengers:", "[X].", "Escort details are enclosed.", "Evacuation covers [X].", "[X]", "[X]", "Vehicles will use Route [X].", "Departure remains on schedule.", "Receipt of this order required."],
+	["Your scarf still smells of home.", "I keep it beside me at night.", "How is our stubborn kitchen lamp?", "I shall be home later than I said.", "Do not come to West Station", "with your supper basket again.", "[X]", "[X]", "[X]", "If anyone asks, say you heard", "nothing. I cannot write more.", "I hope the soup was good.", "When I return, I will mend", "that draughty kitchen window.", "Until then, leave the lamp on."],
+	["Effective immediately, flour at", "western district depots is", "reserved for military transport.", "Existing civilian stocks are", "[X] to maintain", "the current bread ration.", "Local offices shall [X] issue", "replacement ration coupons", "until further notice.", "Military bakery deliveries will", "continue. [X]", "[X]", "Residents are to be informed", "that the revised arrangements", "will prevent shortages."],
+	["Shelter No. 14 remains on the", "public shelter list.", "It can [X] receive civilians.", "[X]", "[X]", "The adjoining cellar remains in", "use, but admission is restricted", "to [X].", "Residents waiting outside were", "directed to the next shelter.", "[X]", "The public shelter list is", "awaiting clearance."],
+	["The western passage is [X]", "open to civilian traffic.", "[X]", "[X]", "Residents awaiting transfer are to", "assemble there at 1800.", "[X]", "[X]", "Bring identity papers and one", "piece of hand luggage. Leave the", "road clear for military vehicles.", "The movement order remains in", "force until formally withdrawn."],
+	["Selected records will be collected", "from the rear courtyard at 1800.", "Transport: [X].", "[X]", "[X]", "Before transfer, remove identifying", "particulars from these files:", "Civilian shelter exclusions:", "authorised by [X].", "Western goods yard movement order:", "authorised by [X].", "Destroy original instructions", "and duplicate copies afterwards.", "All remaining personnel shall", "continue work until individually", "relieved."],
+]
+
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -7,132 +17,135 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var scene = load("res://scenes/main.tscn").instantiate()
-	scene.play_intro = false
+	scene.set_script(null)
+	scene.get_node("WorkCamera").enabled = false
 	root.add_child(scene)
 	await process_frame
 	var paper = scene.get_node("Paper")
+	var document = paper.document
+	var notifications: Array[int] = [0]
+	paper.target_redacted.connect(func(_index: int) -> void: notifications[0] += 1)
 	paper.animate = false
-	var document = paper.get_node("DocumentViewport/Document")
-	var impressions = document._impressions("AAAA", 420.6)
-	assert(impressions == document._impressions("AAAA", 420.6), "Ink must remain stable across redraws")
-	assert(impressions[0] != impressions[1], "Repeated letters must have distinct impressions")
-	var no_index := -1
-	for index in range(document.words.size()):
-		if document.words[index].row == 4:
-			no_index = index
-	assert(no_index >= 0)
+	paper.busy = false
+	for page_index in range(document.PAGES.size()):
+		var page: Dictionary = document.PAGES[page_index]
+		var released: Array = []
+		for sentence in page.sentences:
+			released.append_array(sentence.duplicate())
+		for target in page.targets:
+			assert(target.has("text") and target.has("line"), "Each click must redact only one marked line")
+			var offset := 0
+			for sentence_index in range(target.sentence):
+				offset += page.sentences[sentence_index].size()
+			if target.has("text"):
+				var row: int = offset + target.line
+				assert(released[row].count(target.text) == 1)
+				released[row] = released[row].replace(target.text, "[X]")
+			else:
+				for line_index in range(page.sentences[target.sentence].size()):
+					released[offset + line_index] = "[X]"
+		assert(released == RELEASED[page_index], "The fully redacted report must match the planned meaning")
 	for viewport_size in [Vector2i(1152, 648), Vector2i(1920, 1080), Vector2i(900, 900)]:
 		root.size = viewport_size
 		await process_frame
-		document.redacted_words.clear()
-		for index in range(document.words.size()):
-			var bounds: Rect2 = document.words[index].rect
-			var point := _project(paper, bounds.get_center())
-			assert(paper.document_position(point).distance_to(bounds.get_center()) < 0.01)
-			assert(document.word_at(paper.document_position(point)) == index)
-			assert(bounds.end.x < 960, "Text exceeds paper margin")
-		var no_point := _project(paper, document.words[no_index].rect.get_center())
-		_motion(paper, no_point)
-		assert(document.hovered_word == no_index and document.redacted_words.is_empty(), "Hover only previews")
-		_button(paper, no_point, true)
-		_button(paper, no_point, false)
-		assert(document.redacted_words.is_empty(), "A click without dragging must not redact")
-		_button(paper, no_point, true)
-		_motion(paper, no_point + Vector2(1, 0), MOUSE_BUTTON_MASK_LEFT)
-		assert(document.redacted_words == [no_index], "Only the selected word must be removed")
-		_motion(paper, no_point, MOUSE_BUTTON_MASK_LEFT)
-		assert(document.redacted_words.size() == 1, "Repainting must not duplicate words")
-		assert(document.hovered_word == -1, "Redacted words must not show a hover line")
-		var outside_release := InputEventMouseButton.new()
-		outside_release.button_index = MOUSE_BUTTON_LEFT
-		paper._input(outside_release)
-		_motion(paper, _project(paper, document.words[0].rect.get_center()))
-		assert(not paper.dragging and document.redacted_words.size() == 1, "Outside release ends painting")
-		document.redacted_words.clear()
-		var first: Rect2 = document.words[0].rect
-		var last: Rect2 = document.words[no_index].rect
-		_button(paper, _project(paper, Vector2(first.position.x - 12, first.get_center().y)), true)
-		_motion(paper, _project(paper, Vector2(last.end.x + 12, last.get_center().y)), MOUSE_BUTTON_MASK_LEFT)
-		assert(document.redacted_words.size() == no_index + 1, "Fast drag must hit intermediate words")
-		_button(paper, no_point, false)
-		document.redacted_words.clear()
-		_button(paper, no_point, true)
-		paper._clear_hover()
-		_motion(paper, _project(paper, document.words[0].rect.get_center()), MOUSE_BUTTON_MASK_LEFT)
-		assert(document.redacted_words.is_empty(), "Re-entry must not paint a chord across the page")
-		_button(paper, no_point, false)
-		_motion(paper, no_point)
-		paper._clear_hover()
-		assert(document.hovered_word == -1, "Leaving paper clears the preview")
-		var right_click := InputEventMouseButton.new()
-		right_click.button_index = MOUSE_BUTTON_RIGHT
-		right_click.pressed = true
-		right_click.position = no_point
-		paper._gui_input(right_click)
-		_motion(paper, no_point + Vector2(2, 0), MOUSE_BUTTON_MASK_RIGHT)
-		assert(document.redacted_words.is_empty(), "Right button must not paint")
-		assert(document.word_at(Vector2(200, 140)) == -1, "Heading is not redactable")
-		assert(document.word_at(paper.document_position(Vector2.ZERO)) == -1)
-	# Dispatch through Godot itself to check that the hand and shade do not swallow input.
-	var target: Vector2 = paper.get_global_transform() * _project(paper, document.words[0].rect.get_center())
-	var hover := InputEventMouseMotion.new()
-	hover.position = target
-	hover.global_position = target
-	root.push_input(hover, true)
-	assert(document.hovered_word == 0, "Viewport must deliver hover through visual overlays")
-	var press := InputEventMouseButton.new()
-	press.position = target
-	press.button_index = MOUSE_BUTTON_LEFT
-	press.pressed = true
-	root.push_input(press, true)
-	assert(document.redacted_words.is_empty())
-	hover.position += Vector2(1, 0)
-	hover.button_mask = MOUSE_BUTTON_MASK_LEFT
-	root.push_input(hover, true)
-	assert(document.redacted_words == [0], "Viewport must deliver the brush drag")
-	var release := InputEventMouseButton.new()
-	release.position = Vector2.ZERO
-	release.button_index = MOUSE_BUTTON_LEFT
-	root.push_input(release, true)
-	assert(not paper.dragging)
-	document.redacted_words.clear()
-	paper._clear_hover()
-	print("PASS: word hover, drag-only painting, fast strokes, outside release, re-entry, viewport input and perspective at three sizes")
+		for page_index in range(document.PAGES.size()):
+			var page: Dictionary = document.PAGES[page_index]
+			document.set_page(page)
+			assert(paper.get_node("PaperViewport/PaperImage").texture == page.paper)
+			if page.get("kind", "") == "newspaper":
+				assert(document.target_at(Vector2(500, 500)) == -1 and not document.is_complete())
+				continue
+			if page_index >= 4:
+				for sentence_index in range(page.sentences.size()):
+					for line_index in range(page.sentences[sentence_index].size()):
+						var bounds: Rect2 = document.line_rect(sentence_index, line_index)
+						assert(bounds.end.x < 970 and bounds.end.y < 1390, "Late letters must fit the paper")
+			for target_index in range(page.targets.size()):
+				assert(document.target_rects(target_index).size() == 1, "A marked line must require its own click")
+				for bounds in document.target_rects(target_index):
+					assert(bounds.end.x < 960)
+					var local: Vector2 = paper.document_to_local(bounds.get_center())
+					assert(paper.document_position(local).distance_to(bounds.get_center()) < 0.01)
+					assert(document.target_at(paper.document_position(local)) == target_index)
+					var motion := InputEventMouseMotion.new()
+					motion.position = local
+					motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+					paper._gui_input(motion)
+					assert(document.redacted.is_empty())
+				var point: Vector2 = paper.document_to_local(document.target_rects(target_index)[0].get_center())
+				_click(paper, point, MOUSE_BUTTON_RIGHT)
+				assert(document.redacted.is_empty())
+				var before := notifications[0]
+				_click(paper, point)
+				assert(document.redacted == [target_index] and notifications[0] == before + 1)
+				_click(paper, point)
+				assert(notifications[0] == before + 1)
+				document.set_page(page)
+			# Every unmarked character centre must stay unclickable, including neighbours of a target.
+			for sentence_index in range(page.sentences.size()):
+				for line_index in range(page.sentences[sentence_index].size()):
+					var text: String = page.sentences[sentence_index][line_index]
+					for column in range(text.length()):
+						var expected := -1
+						for index in range(page.targets.size()):
+							var target: Dictionary = page.targets[index]
+							if target.sentence == sentence_index:
+								if not target.has("text"):
+									expected = index
+								elif target.line == line_index:
+									var start := text.find(target.text)
+									if column >= start and column < start + target.text.length():
+										expected = index
+						var bounds: Rect2 = document.line_rect(sentence_index, line_index)
+						var source := Vector2(document.LEFT + (document.character_offset(text, column) + document.character_offset(text, column + 1)) * 0.5, bounds.get_center().y)
+						assert(document.target_at(source) == expected, "Only the exact marked characters can be clicked")
+			document.redact_target(-1)
+			document.redact_target(page.targets.size())
+			assert(document.redacted.is_empty())
+			for index in range(page.targets.size()):
+				document.redact_target(index)
+			assert(document.is_complete())
+			document.set_page(page)
+			assert(not document.is_complete() and document.target_progress.is_empty())
+	root.size = Vector2i(1152, 648)
+	var camera: Camera2D = scene.get_node("WorkCamera")
+	camera.enabled = true
+	await process_frame
+	camera.position = paper.get_global_rect().get_center()
+	camera.zoom = Vector2.ONE * 1.32
+	camera.force_update_scroll()
+	paper.animate = true
+	paper.stroke_speed = 90000.0
+	paper.line_pause = 0.0
+	document.set_page(document.PAGES[0])
+	var target: Vector2 = paper.get_global_transform_with_canvas() * paper.document_to_local(document.target_rects(0)[0].get_center())
+	var click := InputEventMouseButton.new()
+	click.position = target
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	root.push_input(click, true)
+	assert(paper.busy and document.redacted.is_empty())
+	await paper.target_redacted
+	assert(not paper.busy and document.redacted == [0])
+	assert(document.target_progress[Vector2i(0, 0)] == 1.0)
 	if DisplayServer.get_name() != "headless":
-		root.size = Vector2i(1152, 648)
-		document.set_hovered_word(no_index)
-		await process_frame
-		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://.godot/document-hover-preview.png")
-		var no_center: Vector2 = document.words[no_index].rect.get_center()
-		document.redact_stroke(no_center, no_center + Vector2(2, 0))
-		await process_frame
-		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://.godot/document-word-redacted-preview.png")
+		for page_index in range(document.PAGES.size()):
+			document.set_page(document.PAGES[page_index])
+			await process_frame
+			await RenderingServer.frame_post_draw
+			root.get_texture().get_image().save_png("res://.godot/file-%d-before.png" % (page_index + 1))
+			for index in range(document.page.targets.size()):
+				document.redact_target(index)
+			await process_frame
+			await RenderingServer.frame_post_draw
+			root.get_texture().get_image().save_png("res://.godot/file-%d-after.png" % (page_index + 1))
+	print("PASS: planned before/after text, exact marked spans, protected adjacent characters, blank papers, target animation and perspective at three sizes")
 	quit()
 
 
-func _project(paper: TextureRect, source_point: Vector2) -> Vector2:
-	var source_size := Vector2(1086, 1448)
-	var fitted: Vector2 = source_size * minf(paper.size.x / source_size.x, paper.size.y / source_size.y)
-	var top_width: float = paper.material.get_shader_parameter("top_width")
-	var uv := source_point / source_size
-	var divisor := 1.0 - (1.0 - top_width) * uv.y
-	return (paper.size - fitted) * 0.5 + Vector2(0.5 + (uv.x - 0.5) * top_width / divisor, uv.y * top_width / divisor) * fitted
-
-
-func _motion(paper: TextureRect, point: Vector2, buttons: int = 0) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = point
-	event.button_mask = buttons
-	paper._input(event)
-	paper._gui_input(event)
-
-
-func _button(paper: TextureRect, point: Vector2, pressed: bool) -> void:
+func _click(paper: TextureRect, point: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 	var event := InputEventMouseButton.new()
 	event.position = point
-	event.button_index = MOUSE_BUTTON_LEFT
-	event.pressed = pressed
-	paper._input(event)
+	event.button_index = button
+	event.pressed = true
 	paper._gui_input(event)

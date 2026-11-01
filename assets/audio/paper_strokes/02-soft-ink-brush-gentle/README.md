@@ -1,0 +1,1 @@
+Gentler revision of soft ink brush. Two 720 Hz low-pass stages, smoothly varying pressure, softened starts/ends, and RMS level reduced by 7 dB relative to the original. Original files retained. 44.1 kHz / 16-bit mono PCM. Not connected to gameplay.
